@@ -1,0 +1,10 @@
+body {
+	background-color: #222;
+	}
+
+.custom-wrapper-class {
+	width: 800px;
+	height: 600px;
+	margin: 20px auto;
+	background-color: #eee;
+	}
