@@ -25,5 +25,12 @@
 		top: 0;
 		width: 100%;
 		height: 100%;
+		}
+
+	.apiz-wrapper.apiz-enabled > .apiz-overlay {
 		cursor: move;
+		}
+
+	.apiz-wrapper.apiz-disabled > .apiz-overlay {
+		cursor: default;
 		}

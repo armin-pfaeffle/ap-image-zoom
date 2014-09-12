@@ -1,434 +1,508 @@
 /**
+* @license ap-image-zoom.js v0.3
+* Updated: 04.09.2014
+* DESCRIPTION
+* Copyright (c) 2014 armin pfaeffle
+* Released under the MIT license
+* http://armin-pfaeffle.de/licenses/mit
+*/
 
-Events:
-panstart -- Parameter: evt, position
-panmove -- Parameter: evt, position
-panend -- Parameter: evt, position
+;(function($) {
 
-pinchstart -- Parameter: evt, size, position
-pinchmove -- Parameter: evt, size, position
-pinchend -- Parameter: evt, size, position
+	var datakey = '__apiz__';
+	var cssPrefix = 'apiz-';
 
-mousewheel -- Parameter: evt, size, position
+	/**
+	 * Makes the first character of str uppercase and returns that string.
+	 */
+	function ucfirst(str) {
+		str += ''; // ensure that str is a string
+		var c = str[0].toUpperCase();
+		return c + str.substr(1);
+	}
 
+	/**
+	 * Adds ucfirst() method to String class. Makes the first character
+	 * of str uppercase and returns that string.
+	 */
+	if (!String.prototype.ucfirst) {
+		String.prototype.ucfirst = function() {
+			return ucfirst(this);
+		};
+	}
 
+	/**
+	 * 2D Point class with properties x and y. Parses x and y to Float and applies
+	 * Math.round() so x and y are Integer.
+	 */
+	function Point(x, y) {
+		this.x = Math.round(parseFloat(x));
+		this.y = Math.round(parseFloat(y));
+	}
 
-**/
+	/**
+	 * 2D Size class with properties width and height. Both parameters are parsed to float and
+	 * then rounded to Integer.
+	 */
+	function Size(width, height) {
+		this.width = Math.round(parseFloat(width));
+		this.height = Math.round(parseFloat(height));
+	}
 
+	/**
+	 * Scale class with properties x, y and z. All three parameters are parsed to float.
+	 */
+	function Scale(x, y, z) {
+		z = (typeof z !== 'undefined' ? z : 1);
+		this.x = parseFloat(x);
+		this.y = parseFloat(y);
+		this.z = parseFloat(z);
+	}
 
-;(function ($) {
-
-	var PLUGIN_VERSION = "0.1";
-	var PLUGIN_DATE = "20.08.2014";
-
-
-	$.fn.apImageZoom = function( action, options )
-	{
-		// if action is an object then it's probably a call like this $(element).apImageZoom(options)
-		// so we have to apply these options
-		if (action instanceof Object != false) {
-			options = action;
-			action = null;
+	/**
+	 * Constructor for ApImageZoom plugin.
+	 */
+	function ApImageZoom(image, options) {
+		// Do not remake the zoom plugin
+		var data = $(image).data(datakey);
+		if (data) {
+			return data;
 		}
 
-		// Merge options
-		var settings = $.extend( $.apImageZoom.settings.default, options );
+		this.$image = $(image);
+		this.settings = $.extend({}, ApImageZoom.defaultSettings, options);
+		this._init();
 
+		// Save the instance
+		this.$image.data(datakey, this);
+	}
 
-		/**
-		 * Initialization.
-		 *
-		 * @param $checkbox
-		 */
-		function create($image)
-		{
-			this.targetImage = $image;
-			this.targetImage.data('originalStyle', this.targetImage.attr('style')); // TODO: in destroy einbauen
-			this.targetImage.data('settings', settings);
-
-			var imageCopy = $('<img />')
-								.hide()
-								.appendTo('body')
-								.data('targetImage', this.targetImage);
-			imageCopy.load(function() {
-				obtainImageProperties(imageCopy);
-				initialize();
-				$(this).remove();
-			});
-			imageCopy.attr('src', this.targetImage.attr('src'));
-		}
-
-		/**
-		 *
-		 */
-		function obtainImageProperties(imageCopy)
-		{
-			var settings = this.targetImage.data('settings');
-
-			var imageWidth = imageCopy.width();
-			var imageHeight = imageCopy.height();
-
-			this.targetImage.data('originSize', new Size( imageWidth, imageHeight ) );
-			this.targetImage.data('sizeConstraints', {
-				width : { min: imageWidth * settings.minZoom, max: imageWidth * settings.maxZoom },
-				height : { min: imageHeight * settings.minZoom, max: imageHeight * settings.maxZoom }
-			});
-		}
-
-		/**
-		 *
-		 */
-		function initialize()
-		{
-			wrapImage();
-			setInitialSizeAndPosition();
-			enableControlFocus();
-			assignEvents();
-			assignTriggerFunctions();
-		}
+	/**
+	 * ApImageZoom class.
+	 */
+	ApImageZoom.prototype = {
 
 		/**
 		 *
 		 */
-		function wrapImage()
-		{
-			var image = this.targetImage;
-			var settings = image.data('settings');
+		_init: function() {
+			var self = this;
 
+			this.panning = false;
+			this.pinching = false;
+
+			this.originSize = new Size(this.$image.width(), this.$image.height());
+			this.originStyle = this.$image.attr('style');
+
+			// Create a temporary hidden copy of image, so we obtain the real/natural size
+			$('<img />')
+				.hide()
+				.appendTo('body')
+				.load(function() {
+					self.naturalSize = new Size($(this).width(), $(this).height());
+					self._setConstraints();
+					self._setup();
+					$(this).remove();
+				})
+				.attr('src', this.$image.attr('src'));
+		},
+
+		/**
+		 *
+		 */
+		_setup: function() {
+			this._wrapImage();
+			this._setCssClasses();
+			this._resetSize();
+			this._center();
+			this._bind();
+
+			this._trigger('init');
+		},
+
+		/**
+		 *
+		 */
+		_wrapImage: function() {
 			// Setup wrapper and overlay
-			var wrapper = $('<div></div>').addClass('apiz-wrapper');
-			image.data('wrapper', wrapper);
-			if (settings.cssWrapperClass && typeof settings.cssWrapperClass == 'string') {
-				wrapper.addClass(settings.cssWrapperClass);
-			}
+			this.$wrapper = $('<div></div>').addClass(cssPrefix + 'wrapper');
+			this.$overlay = $('<div></div>').addClass(cssPrefix + 'overlay');
+			this.$wrapper.append(this.$overlay);
 
 			// Apply ID with prefix "apiz-" if image has one
-			var id = image.attr('id');
-			if (id && id.length > 0) {
-				wrapper.attr('id', 'apiz-' + id);
+			var id = this.$image.attr('id');
+			if (id) {
+				this.$wrapper.attr('id', cssPrefix + id);
 			}
 
-			var overlay = $('<div></div>').addClass('apiz-overlay');
-			image.data('overlay', overlay);
-			wrapper.append(overlay);
-
 			// Replace image with wrapper and place image into wrapper
-			image
-				.after(wrapper)
-				.prependTo(wrapper);
-		}
+			this.$image
+				.after(this.$wrapper)
+				.prependTo(this.$wrapper);
+		},
 
 		/**
 		 *
 		 */
-		function setInitialSizeAndPosition()
-		{
-			var initialSize = this.targetImage.data('settings').initialSize;
-			var overlay = this.targetImage.data('overlay');
-			var overlaySize = new Size(overlay.width(), overlay.height());
-			var size = null;
-			if (initialSize && typeof initialSize == 'string') {
-				var sizeConstraints = this.targetImage.data('sizeConstraints');
-				switch (initialSize) {
+		_unwrap: function() {
+			this.$wrapper
+				.after(this.$image)
+				.remove();
+		},
+
+		/**
+		 *
+		 */
+		_setCssClasses: function() {
+			if (typeof this.settings.cssWrapperClass == 'string') {
+				this.$wrapper.addClass(this.settings.cssWrapperClass);
+			}
+			var cssClasses = {
+				hammer: {
+					status: !this.settings.disableHammerPlugin,
+					enabled: 'hammer-enabled',
+					disabled: 'hammer-disabled'
+				},
+				mouseWheel: {
+					status: !this.settings.disableMouseWheelPlugin,
+					enabled: 'mouse-wheel-enabled',
+					disabled: 'mouse-wheel-disabled'
+				},
+				enabled: {
+					status: !this.settings.disabled,
+					enabled: 'enabled',
+					disabled: 'disabled'
+				},
+				panEnabled: {
+					status: !this.settings.disablePan,
+					enabled: 'pan-enabled',
+					disabled: 'pan-disabled'
+				},
+				zoomEnabled: {
+					status: !this.settings.disableZoom,
+					enabled: 'zoom-enabled',
+					disabled: 'zoom-disabled'
+				}
+			};
+
+			for (key in cssClasses) {
+				var property = cssClasses[key];
+				this.$wrapper
+					.removeClass(cssPrefix + (property.status ? property.disabled : property.enabled))
+					.addClass(cssPrefix + (property.status ? property.enabled : property.disabled));
+			}
+		},
+
+		/**
+		 *
+		 */
+		_bind: function() {
+			var self = this;
+
+			// Hammer: pan, pinch, swipe, tap, double-tap
+			if (!this.settings.disableHammerPlugin && typeof Hammer == "function") {
+				this.hammerManager = new Hammer.Manager( this.$overlay[0] );
+
+				this.hammerManager.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+				this.hammerManager.add(new Hammer.Pinch({ threshold: 0 })).recognizeWith( this.hammerManager.get('pan') );
+				this.hammerManager.add(new Hammer.Swipe()).recognizeWith( this.hammerManager.get('pan') );
+				this.hammerManager.add(new Hammer.Tap({ event: 'doubletap', taps: 2 }));
+				this.hammerManager.add(new Hammer.Tap());
+
+				this.hammerManager.on("panstart panmove panend", function(evt) { self._onPan(evt); } );
+				this.hammerManager.on("pinchstart pinchmove pinchend", function(evt) { self._onPinch(evt); } );
+				this.hammerManager.on("swipe", function(evt) { self._onSwipe(evt); } );
+				this.hammerManager.on("tap", function(evt) { self._onTap(evt); } );
+				this.hammerManager.on("doubletap", function(evt) { self._onDoubleTap(evt); } );
+			}
+
+			// MouseWheel: zoom
+			if (!this.settings.disableMouseWheelPlugin && typeof jQuery.fn.mousewheel == "function") {
+				this.$overlay.on('mousewheel', function(evt) { self._onMouseWheel(evt); } );
+			}
+		},
+
+		/**
+		 *
+		 */
+		_unbind: function() {
+			if (this.hammerManager) {
+				this.hammerManager.stop(true); // immediate stop recognition
+				this.hammerManager.destroy();
+				this._isPanning(false);
+				this._isPinching(false);
+			}
+			this.$overlay.unbind('mousewheel');
+		},
+
+		/**
+		 *
+		 */
+		_onPan: function(evt) {
+			if (this.settings.disabled || this.settings.disablePan) {
+				return;
+			}
+
+			if (evt.type == 'panstart') {
+				this._isPanning(true);
+				this.panStart = {
+					imagePosition: this._imagePosition(),
+					cursorPosition: new Point(evt.pointers[0].screenX, evt.pointers[0].screenY)
+				};
+				this._trigger('panstart', [this.panStart.imagePosition]);
+			}
+			else if (evt.type == 'panend') {
+				this._isPanning(false);
+				this.$wrapper.removeClass(cssPrefix + 'is-panning');
+				this._trigger('panend', [this._imagePosition()]);
+			}
+			else {
+				var position = new Point(
+					this.panStart.imagePosition.x + (evt.pointers[0].screenX - this.panStart.cursorPosition.x),
+					this.panStart.imagePosition.y + (evt.pointers[0].screenY - this.panStart.cursorPosition.y)
+				);
+				var updatedPosition = this._move(position);
+				this._trigger('panmove', [updatedPosition]);
+			}
+			evt.preventDefault();
+		},
+
+		/**
+		 *
+		 */
+		_onPinch: function(evt) {
+			if (this.settings.disabled || this.settings.disableZoom) {
+				return;
+			}
+
+			if (evt.type == 'pinchstart') {
+				this._isPinching(true);
+
+				// Save center between two points for relative positioning of image
+				var p1 = new Point(evt.pointers[0].pageX || 0, evt.pointers[0].pageY || 0);
+				var p2 = new Point(evt.pointers[1].pageX || 0, evt.pointers[1].pageY || 0);
+				var touchCenter = new Point( (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 );
+
+				var imageSize = this._imageSize();
+				var relativeOrigin = new Scale(
+					(touchCenter.x - this.$image.offset().left) / imageSize.width,
+					(touchCenter.y - this.$image.offset().top) / imageSize.height
+				);
+
+				this.pinchStart = {
+					imageSize: imageSize,
+					imagePosition: this._imagePosition(),
+					relativeOrigin: relativeOrigin
+				};
+				this._trigger('pinchstart', [imageSize, this.pinchStart.imagePosition]);
+			}
+			else if (evt.type == 'pinchend') {
+				this._isPinching(false);
+				this._trigger('pinchend', [this._imageSize(), this._imagePosition()]);
+			}
+			else {
+				// Here we do NOT depend on the internal zoomTo method because while
+				// pinching we have to depend on the values on pinch starts. zoomTo
+				// calculates the values for zooming each step and does not depend on
+				// the start values.
+				var size = new Size(
+					this.pinchStart.imageSize.width * evt.scale,
+					this.pinchStart.imageSize.height * evt.scale
+				);
+				var updatedSize = this._resize(size);
+
+				// Only update position if size has been changed
+				if (updatedSize.width > -1) {
+					var deltaWidth = updatedSize.width - this.pinchStart.imageSize.width;
+					var deltaHeight = updatedSize.height - this.pinchStart.imageSize.height;
+					var position = new Point(
+						this.pinchStart.imagePosition.x - (deltaWidth * this.pinchStart.relativeOrigin.x),
+						this.pinchStart.imagePosition.y - (deltaHeight * this.pinchStart.relativeOrigin.y)
+					);
+					var updatedPosition = this._move(position);
+					this._trigger('pinchmove', [updatedSize, updatedPosition]);
+				}
+			}
+			evt.preventDefault();
+		},
+
+		/**
+		 *
+		 */
+		_onSwipe: function(evt) {
+			if (this.settings.disabled) {
+				return;
+			}
+
+			// Only trigger event
+			var eventType;
+			switch (evt.direction) {
+				case  8: eventType = 'swipetop'; break;
+				case  4: eventType = 'swiperight'; break;
+				case 16: eventType = 'swipebottom'; break;
+				case  2: eventType = 'swipeleft'; break;
+			};
+			if (eventType) {
+				this._trigger(eventType, [evt]);
+				evt.preventDefault();
+			}
+		},
+
+		/**
+		 *
+		 */
+		_onTap: function(evt) {
+			if (this.settings.disabled) {
+				return;
+			}
+
+			// TODO: Should be do any action here?
+
+			this._trigger('tap', [evt]);
+			evt.preventDefault();
+		},
+
+		/**
+		 *
+		 */
+		_onDoubleTap: function(evt) {
+			if (this.settings.disabled) {
+				return;
+			}
+
+			var zoom;
+			var imageSize = this._imageSize();
+			switch (this.settings.doubleTap) {
+				case 'open':
+					var src = this.$image.attr('src');
+					window.open(src);
+					break;
+
+				case 'zoomMax':
+					zoom = this.settings.maxZoom;
+					break;
+
+				case 'zoomToggle':
+					if (imageSize.width == this.sizeConstraints.width.max) {
+						this._resetSize();
+						this._center();
+					}
+					else {
+						zoom = this.settings.maxZoom;
+					}
+					break;
+			}
+			if (zoom) {
+				var origin = new Scale(
+					(evt.pointers[0].pageX - this.$image.offset().left) / imageSize.width,
+					(evt.pointers[0].pageY - this.$image.offset().top) / imageSize.height
+				);
+				this._zoomTo(zoom, origin);
+			}
+
+			this._trigger('doubletap', [evt]);
+			evt.preventDefault();
+		},
+
+		/**
+		 * Event handler for mouse wheel events.
+		 */
+		_onMouseWheel: function(evt) {
+			if (this.settings.disabled || this.settings.disableZoom || this._isPinching()) {
+				return;
+			}
+
+			var zoom = this._getZoom() + (this.settings.zoomStep * evt.deltaY);
+
+			var imageSize = this._imageSize();
+			var origin = new Scale(
+				(evt.pageX - this.$image.offset().left) / imageSize.width,
+				(evt.pageY - this.$image.offset().top) / imageSize.height
+			);
+			var sizeAndPosition = this._zoomTo(zoom, origin);
+
+			this._trigger('mousewheel', [sizeAndPosition.size, sizeAndPosition.position]);
+			evt.preventDefault();
+		},
+
+		/**
+		 *
+		 */
+		_setConstraints: function() {
+			this.sizeConstraints = {
+				width : {
+					min: this.naturalSize.width * this.settings.minZoom,
+					max: this.naturalSize.width * this.settings.maxZoom
+				},
+				height : {
+					min: this.naturalSize.height * this.settings.minZoom,
+					max: this.naturalSize.height * this.settings.maxZoom
+				}
+			};
+		},
+
+		/**
+		 *
+		 */
+		_resetSize: function() {
+			var size = this.originSize;
+			if (typeof this.settings.initialSize == 'string') {
+				switch (this.settings.initialSize) {
 					case "auto":
-						// Try to make size 100% width or 100% height so the whole image is visible
-						var overlayRatio = overlaySize.width / overlaySize.height;
-						var imageSize = new Size(this.targetImage.width(), this.targetImage.height());
-						if (overlayRatio <= 1) {
-							size = new Size( overlaySize.width, imageSize.height * (overlaySize.width / imageSize.width) );
-						} else {
-							size = new Size( imageSize.width * (overlaySize.height / imageSize.height), overlaySize.height );
-						}
+						size = this._getAutoFitSize();
 						break;
 
 					case "min":
-						size = new Size(sizeConstraints.width.min, sizeConstraints.height.min);
+						size = new Size(this.sizeConstraints.width.min, this.sizeConstraints.height.min);
 						break;
 
 					case "max":
-						size = new Size(sizeConstraints.width.max, sizeConstraints.height.max);
+						size = new Size(this.sizeConstraints.width.max, this.sizeConstraints.height.max);
 						break;
 				}
-				if (size) {
-					size = updateSize(this.targetImage, size);
-				}
 			}
+			var updatedSize = this._resize(size);
+			this._trigger('resetSize', [updatedSize]);
+		},
 
-			// Do not modify position if position has NOT be changed
-			if (size && size.width == -1) {
-				return;
+		/**
+		 * Try to make size 100% width or 100% height so the whole image is visible
+		 */
+		_getAutoFitSize: function() {
+			var overlaySize = this._overlaySize();
+			var imageSize = this._imageSize();
+			var isLandscapeFormat = (overlaySize.width / overlaySize.height) > 1;
+			if (isLandscapeFormat) {
+				size = new Size(imageSize.width * (overlaySize.height / imageSize.height), overlaySize.height);
 			}
-
-			// Gather current image size and height for centering image
-			if (!size) {
-				var size = new Size(this.targetImage.width(), this.targetImage.height());
+			else {
+				size = new Size(overlaySize.width, imageSize.height * (overlaySize.width / imageSize.width));
 			}
-			var position = new Point((overlaySize.width - size.width) / 2, (overlaySize.height - size.height) / 2);
-			updatePosition(this.targetImage, position);
-		}
+			return size;
+		},
 
 		/**
 		 *
 		 */
-		function enableControlFocus()
-		{
-			var image = this.targetImage;
-			var overlay = image.data('overlay');
-
-			var tabIndex = image.attr('tabindex');
-			if (tabIndex && tabIndex > 0) {
-				image.removeAttr('tabindex');
-				image.data('originTabIndex', tabIndex);
+		_center: function(dimension) {
+			var imageSize = this._imageSize();
+			var overlaySize = this._overlaySize();
+			var position = this._imagePosition();
+			switch (dimension) {
+				case 'x':
+				case 'horizontal':
+					position.x = (overlaySize.width - imageSize.width) / 2;
+					break;
+				case 'y':
+				case 'vertical':
+					position.y = (overlaySize.height - imageSize.height) / 2;
+					break;
+				default:
+					position = new Point((overlaySize.width - imageSize.width) / 2, (overlaySize.height - imageSize.height) / 2);
 			}
-			overlay.attr('tabindex', (tabIndex ? tabIndex : -1));
-		}
-
-		/**
-		 *
-		 */
-		function assignEvents()
-		{
-			var settings = this.targetImage.data('settings');
-			if (!settings.disableHammer && typeof Hammer == "function") {
-				setupHammer();
-			}
-			if (!settings.disableMouseWheel && typeof jQuery.fn.mousewheel == "function") {
-				this.targetImage.data('overlay').on('mousewheel', onMouseWheel);
-			}
-		}
-
-		/**
-		 *
-		 */
-		function assignTriggerFunctions()
-		{
-			var image = this.targetImage;
-			var settings = image.data('settings');
-			var events = [
-				'onBeforeSizeUpdate',
-				'onAfterSizeUpdate',
-				'onBeforePositionUpdate',
-				'onAfterPositionUpdate'
-			];
-			for (index in events) {
-				var eventName = events[index];
-				if (typeof settings[eventName] == 'function') {
-					image.on(eventName, settings[eventName]);
-				}
-			}
-		}
-
-		/**
-		 *
-		 */
-		function setupHammer()
-		{
-			var hammerManager = new Hammer.Manager( this.targetImage.data('overlay')[0] );
-
-			hammerManager.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
-			hammerManager.add(new Hammer.Pinch({ threshold: 0 })).recognizeWith( hammerManager.get('pan') );
-			hammerManager.add(new Hammer.Swipe()).recognizeWith( hammerManager.get('pan') );
-			hammerManager.add(new Hammer.Tap({ event: 'doubletap', taps: 2 }));
-			hammerManager.add(new Hammer.Tap());
-
-			hammerManager.on("panstart panmove panend", onPan);
-			hammerManager.on("pinchstart pinchmove pinchend", onPinch);
-			hammerManager.on("swipe", onSwipe);
-			hammerManager.on("tap", onTap);
-			hammerManager.on("doubletap", onDoubleTap);
-		}
-
-		/**
-		 *
-		 */
-		function onPan(evt) {
-			var wrapper = $(evt.target).parent();
-			var image = wrapper.children('img');
-
-			if (image.data('settings').disablePan) {
-				return;
-			}
-
-			var currentPosition = new Point(image.css('left'), image.css('top'));
-			if (evt.type == 'panstart') {
-				image.data('isPanning', true);
-				image.data('panStartPosition', currentPosition);
-				image.data('panStartCursor', new Point(
-					evt.pointers[0].screenX,
-					evt.pointers[0].screenY
-				));
-				image.trigger('panstart', [currentPosition]);
-			} else if (evt.type == 'panend') {
-				image.data('isPanning', false);
-				image.trigger('panend', [currentPosition]);
-			} else {
-				var startPosition = image.data('panStartPosition');
-				var startCursor = image.data('panStartCursor');
-				var left = startPosition.x + (evt.pointers[0].screenX - startCursor.x);
-				var top = startPosition.y + (evt.pointers[0].screenY - startCursor.y);
-
-				var setPosition = updatePosition(image, new Point(left, top));
-				image.trigger('panmove', [setPosition]);
-			}
-			evt.preventDefault();
-		}
-
-		/**
-		 *
-		 */
-		function onPinch(evt) {
-			var wrapper = $(evt.target).parent();
-			var image = wrapper.children('img');
-
-			var currentSize = new Size(image.width(), image.height());
-			var currentPosition = new Point(image.css('left'), image.css('top'));
-
-			if (evt.type == 'pinchstart') {
-				image.data('isPinching', true);
-				image.data('pinchStartSize', currentSize);
-				image.data('pinchStartPosition', currentPosition);
-
-				// Save center between two points for relative positioning of image
-				var x1 = evt.pointers[0].screenX || 0;
-				var x2 = evt.pointers[1].screenX || 0;
-				var y1 = evt.pointers[0].screenY || 0;
-				var y2 = evt.pointers[1].screenY || 0;
-				var touchCenter = new Point( (x1 + x2) / 2, (y1 + y2) / 2 );
-				var relativeLeft = (touchCenter.x - image.offset().left) / currentSize.width;
-				var relativeTop = (touchCenter.y - image.offset().top) / currentSize.height;
-				image.data('pinchStartRelativePositioning', new Scale(relativeLeft, relativeTop));
-				image.trigger('pinchstart', [currentSize, currentPosition]);
-			} else if (evt.type == 'pinchend') {
-				image.data('isPinching', false);
-				image.trigger('pinchend', [currentSize, currentPosition]);
-			} else {
-				var startSize = image.data('pinchStartSize');
-				var position = image.data('pinchStartPosition');
-				var relativePositioning = image.data('pinchStartRelativePositioning');
-
-				var width = parseInt(startSize.width * evt.scale);
-				var height = parseInt(startSize.height * evt.scale);
-				var setSize = updateSize(image, new Size(width, height));
-
-				// Only update position if size has been changedvar setPosition =
-				var setPosition = null;
-				if (setSize.width > 0) {
-					var deltaWidth = setSize.width - startSize.width;
-					var deltaHeight = setSize.height - startSize.height;
-					var p = new Point(
-						position.x - (deltaWidth * relativePositioning.x),
-						position.y - (deltaHeight * relativePositioning.y)
-					);
-					setPosition = updatePosition(image, p);
-				}
-				image.trigger('pinchmove', [size, setPosition]);
-			}
-			evt.preventDefault();
-		}
-
-		/**
-		 *
-		 */
-		function onSwipe(evt)
-		{
-			// TODO
-			// console.debug('onSwipe');
-			// image.trigger('swipe', []);
-			// image.trigger('swipeleft', []);
-			// image.trigger('swiperight', []);
-			// image.trigger('swipetop', []);
-			// image.trigger('swipebottom', []);
-			// evt.preventDefault();
-		}
-
-		/**
-		 *
-		 */
-		function onTap(evt)
-		{
-			// TODO
-			// console.debug('onTap');
-			// image.trigger('tap', []);
-			// evt.preventDefault();
-		}
-
-		/**
-		 *
-		 */
-		function onDoubleTap(evt)
-		{
-			// TODO
-			// console.debug('onDoubleTap');
-			// image.trigger('doubletap', []);
-			// evt.preventDefault();
-		}
-
-		/**
-		 *
-		 */
-		function onMouseWheel(evt)
-		{
-			var parent = $(evt.target).parent();
-			var image = parent.children('img');
-
-			if (image.data('isPanning')) {
-				return;
-			}
-
-			var settings = image.data('settings');
-			var originSize = image.data('originSize');
-			var width = parseInt(image.attr('width'));
-			var height = parseInt(image.attr('height'));
-
-			var newWidth =  width + originSize.width * settings.mouseWheelZoomSteps * evt.deltaY;
-			var newHeight = parseInt(newWidth / width * height);
-			var setSize = updateSize(image, new Size(newWidth, newHeight));
-
-			// Only update position if size has been changed
-			var setPosition = null;
-			if (setSize.width > 0) {
-				var deltaWidth = setSize.width - width;
-				var deltaHeight = setSize.height - height;
-
-				var relativeLeft = (evt.pageX - image.offset().left) / width;
-				var relativeTop = (evt.pageY - image.offset().top) / height;
-
-				var position = new Point(
-					parseInt(image.css('left')) - (deltaWidth * relativeLeft),
-					parseInt(image.css('top')) - (deltaHeight * relativeTop)
-				);
-				setPosition = updatePosition(image, position);
-			}
-			image.trigger('mousewheel', [setSize, setPosition]);
-			evt.preventDefault();
-		}
-
-		/**
-		 * Updates the size of the image considering the size constraints. After setting
-		 * the new size is returned because it can differ from input size.
-		 */
-		function updateSize(image, size)
-		{
-			if (image.data('settings').disableZoom) {
-				return;
-			}
-
-			var constraints = image.data('sizeConstraints');
-			var width = Math.max(Math.min(size.width, constraints.width.max), constraints.width.min);
-			var height = Math.max(Math.min(size.height, constraints.height.max), constraints.height.min);
-
-			var newSize = new Size(width, height);
-			if (image.triggerHandler('beforeSizeUpdate', [newSize]) === false) {
-				return new Size(-1, -1);
-			} else {
-				image.attr({
-					width: newSize.width,
-					height: newSize.height
-				});
-				image.trigger('afterSizeUpdate', [newSize])
-				return newSize;
-			}
-		}
+			var updatedPosition = this._move(position);
+			this._trigger('center', [updatedPosition]);
+		},
 
 		/**
 		 * Updates the position of the image considerungs position constraints, so image is
@@ -436,179 +510,459 @@ mousewheel -- Parameter: evt, size, position
 		 * Additionally it's possible that image is always centered horizontally, vertically
 		 * or both, if image width or height is less than overlay width or height.
 		 */
-		function updatePosition(image, position)
-		{
-			var settings = image.data('settings');
-			var overlay = image.data('overlay');
-			var imageSize = new Size( image.width(), image.height() );
-			var overlaySize = new Size( overlay.width(), overlay.height() );
+		_move: function(position) {
+			var self = this;
+			var overlaySize = this._overlaySize();
+			var imageSize = this._imageSize();
+
 
 			if (imageSize.width <= overlaySize.width) {
 				var left = Math.min( Math.max(0, position.x), overlaySize.width - imageSize.width );
-				if (settings.autoCenter == true || settings.autoCenter == 'both' || settings.autoCenter == 'horizontal') {
+				if (self.settings.autoCenter == true || self.settings.autoCenter == 'both' || self.settings.autoCenter == 'horizontal') {
 					left = Math.round( (overlaySize.width - imageSize.width) / 2 );
 				}
-			} else {
+			}
+			else {
 				var left = Math.max( Math.min(0, position.x), overlaySize.width - imageSize.width );
 			}
 
+
 			if (imageSize.height <= overlaySize.height) {
 				var top = Math.min( Math.max(0, position.y), overlaySize.height - imageSize.height );
-				if (settings.autoCenter == true || settings.autoCenter == 'both' || settings.autoCenter == 'vertical') {
+				if (self.settings.autoCenter == true || self.settings.autoCenter == 'both' || self.settings.autoCenter == 'vertical') {
 					top = Math.round( (overlaySize.height - imageSize.height) / 2 );
 				}
-			} else {
+			}
+			else {
 				var top = Math.max( Math.min(0, position.y), overlaySize.height - imageSize.height );
 			}
 
-			var newPosition = new Point(left, top);
-			if (image.triggerHandler('beforePositionUpdate', [newPosition]) === false) {
+			var adjustedPosition = new Point(left, top);
+			if (this._triggerHandler('beforePositionChange', [adjustedPosition]) === false) {
 				return new Point(-1, -1);
-			} else {
-				image.css({
-					left: newPosition.x,
-					top: newPosition.y
-				});
-				image.trigger('afterPositionUpdate', [newPosition])
-				return newPosition;
 			}
-		}
+			else {
+				this._imagePosition(adjustedPosition);
+				this._trigger('positionChanged', [adjustedPosition])
+				return adjustedPosition;
+			}
+		},
 
 		/**
-		 * Handle each selected element.
+		 * Updates the size of the image considering the size constraints. After setting
+		 * the new size is returned because it can differ from input size.
 		 */
-		return this.each(function()
-		{
-			if (empty(action)) {
-				create($(this));
-			} /* TODO else if (action == '   ') {
-				// TODO
+		_resize: function(size) {
+			var adjustedSize = new Size(
+				Math.max(Math.min(size.width, this.sizeConstraints.width.max), this.sizeConstraints.width.min),
+				Math.max(Math.min(size.height, this.sizeConstraints.height.max), this.sizeConstraints.height.min)
+			);
+			if (this._triggerHandler('beforeSizeChange', [adjustedSize]) === false) {
+				return new Size(-1, -1);
 			}
-			reset
-			resize
-			center
-			zoomIn
-			zoomOut
-			zoomTo
-			enable
-			disable
-			isDisabled
-			isPanning
-			destroy
-
-
-			Events
-			onPanStart
-			onPanMove
-			onPanEnd
-
-			onPinchStart
-			onPinchEnd
-
-			panzoomstart
-			panzoomchange
-			panzoomzoom
-			panzoompan
-			panzoomend
-			panzoomreset
-
-			*/else if (action == 'center') {
-				// TODO
+			else {
+				this._imageSize(adjustedSize);
+				this._trigger('sizeChanged', [adjustedSize])
+				return adjustedSize;
 			}
-		});
-	};
+		},
 
-	/**
-	 *
-	 */
-	$.apImageZoom =
-	{
-		version: PLUGIN_VERSION,
-		date: PLUGIN_DATE,
+		/**
+		 *
+		 */
+		_overlaySize: function() {
+			return new Size(this.$overlay.width(), this.$overlay.height());
+		},
 
-		settings: {
-			default: {
-				disableHammer: false,
-				disableMouseWheel: false,
-
-				initialSize: 'auto',		// Options: 'none', 'auto', 'min', 'max'
-				cssWrapperClass: null,
-				minZoom: 0.2,				// = 20%
-				maxZoom: 1.0,				// = 100%
-				mouseWheelZoomSteps: 0.1,	// = 10% steps
-				autoCenter : true,			// Options: true, 'both', 'horizontal', 'vertical'
-
-				disablePan: false,
-				disableZoom: false,
-
-				/* TODO */
-				// doubleTap: 'open', 'zoom-max', 'zoom-toggle'
-
-				onBeforeSizeUpdate: undefined,
-				onAfterSizeUpdate: undefined,
-				onBeforePositionUpdate: undefined,
-				onAfterPositionUpdate: undefined
+		/**
+		 * Getter and setter for image size.
+		 */
+		_imageSize: function(size) {
+			if (size) {
+				this.$image.width(size.width);
+				this.$image.height(size.height);
 			}
+			else {
+				return new Size(this.$image.width(), this.$image.height());
+			}
+		},
+
+		/**
+		 * Getter and setter for image position.
+		 */
+		_imagePosition: function(position) {
+			if (position) {
+				this.$image.css({
+					left: position.x,
+					top: position.y
+				});
+			}
+			else {
+				return new Point(this.$image.css('left'), this.$image.css('top'));
+			}
+		},
+
+		/**
+		 *
+		 */
+		_isPanning: function(value) {
+			if ((value === true || value === false) && this.panning !== value) {
+				this.panning = value;
+				this.$wrapper.toggleClass(cssPrefix + 'is-panning');
+			}
+			else {
+				return this.panning;
+			}
+		},
+
+		/**
+		 *
+		 */
+		_isPinching: function(value) {
+			if ((value === true || value === false) && this.pinching !== value) {
+				this.pinching = value;
+				this.$wrapper.toggleClass(cssPrefix + 'is-pinching');
+			}
+			else {
+				return this.pinching;
+			}
+		},
+
+		/**
+		 *
+		 */
+		_getZoom: function() {
+			return this._imageSize().width / this.naturalSize.width;
+		},
+
+		/**
+		 *
+		 */
+		_zoomTo: function(zoom, origin) {
+			if (this.settings.disabled || this.settings.disableZoom) {
+				return false;
+			}
+
+			// Update size
+			var imageSize = this._imageSize();
+			var newWidth =  this.naturalSize.width * zoom;
+			var newHeight = parseInt(newWidth / imageSize.width * imageSize.height);
+			var updatedSize = this._resize(new Size(newWidth, newHeight));
+
+			// Only update position if size has been changed
+			var updatedPosition = undefined;
+			if (updatedSize.width > -1) {
+				// if there is no origin given, we define it as center of the image
+				if (!origin) {
+					origin = new Scale(0.5, 0.5);
+				}
+				var deltaWidth = updatedSize.width - imageSize.width;
+				var deltaHeight = updatedSize.height - imageSize.height;
+
+				var imagePosition = this._imagePosition();
+				var position = new Point(
+					imagePosition.x - (deltaWidth * origin.x),
+					imagePosition.y - (deltaHeight * origin.y)
+				);
+				updatedPosition = this._move(position);
+			}
+			return {
+				size: updatedSize,
+				position: updatedPosition
+			};
+		},
+
+		/**
+		 *
+		 */
+		_trigger: function(eventType, args) {
+			var optionName = 'on' + eventType.ucfirst();
+			if (typeof this.settings[optionName] == 'function') {
+				var f = this.settings[optionName];
+				f.apply(this.$image, args);
+			}
+			this.$image.trigger(eventType, args);
+		},
+
+		/**
+		 *
+		 */
+		_triggerHandler: function(eventType, args) {
+			var optionName = 'on' + eventType.ucfirst(),
+				callbackResult = undefined,
+				result;
+			if (typeof this.settings[optionName] == 'function') {
+				var f = this.settings[optionName];
+				callbackResult = f.apply(this.$image, args);
+			}
+			result = ((result = this.$image.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
+			return result;
+		},
+
+		/**
+		 *
+		 */
+		enable: function() {
+			this.settings.disabled = false;
+			this._setCssClasses();
+		},
+
+		/**
+		 *
+		 */
+		disable: function() {
+			this.settings.disabled = true;
+			this._setCssClasses();
+
+			// Stop hammer recognition
+			if (this.hammerManager) {
+				this.hammerManager.stop(true);
+				this._isPanning(false);
+				this._isPinching(false);
+			}
+		},
+
+		/**
+		 *
+		 */
+		isDisable: function() {
+			return this.settings.disabled;
+		},
+		/**
+		 *
+		 */
+		isPanning: function() {
+			return this._isPanning();
+		},
+
+		/**
+		 *
+		 */
+		isPinching: function() {
+			return this._isPinching;
+		},
+
+		/**
+		 *
+		 */
+		size: function() {
+			return this._imageSize();
+		},
+
+		/**
+		 *
+		 */
+		position: function() {
+			return this._imagePosition();
+		},
+
+		/**
+		 *
+		 */
+		reset: function() {
+			this._resetSize();
+			this._center();
+		},
+
+		/**
+		 *
+		 */
+		resetSize: function() {
+			this._resetSize();
+		},
+
+		/**
+		 *
+		 */
+		center: function(dimension) {
+			this._center(dimension);
+		},
+
+		/**
+		 * Getter  and setter for zoom. Parameter origin is optional, but should be used for better
+		 * usability experience.
+		 */
+		zoom: function(zoom, origin) {
+			if (!zoom) {
+				// return current zoom, rounded to 3 decimals
+				var zoom = this._getZoom();
+				return Math.round(zoom * 1000) / 1000;
+			}
+			else {
+				this._zoomTo(zoom, origin);
+			}
+		},
+
+		/**
+		 * Increments the zoom by settings.zoomStep.
+		 */
+		zoomIn: function(origin) {
+			var zoom = this._getZoom() + this.settings.zoomStep;
+			return this._zoomTo(zoom, origin);
+		},
+
+		/**
+		 * Descrements the zoom by settings.zoomStep.
+		 */
+		zoomOut: function(origin) {
+			var zoom = this._getZoom() - this.settings.zoomStep;
+			return this._zoomTo(zoom, origin);
+		},
+
+		/**
+		 *
+		 */
+		option: function(key, value) {
+			if (!key) {
+				// Return copy of current settings
+				return $.extend({}, this.settings);
+			}
+			else {
+				var options;
+				if (typeof key == 'string') {
+					if (arguments.length === 1) {
+						// Return specific value of settings
+						return (this.settings[key] !== undefined ? this.settings[key] : null);
+					}
+					options = {};
+					options[key] = value;
+				} else {
+					options = key;
+				}
+				this._setOptions(options);
+				this._setCssClasses();
+			}
+		},
+
+		/**
+		 *
+		 */
+		_setOptions: function(options) {
+			for (key in options) {
+				var value = options[key];
+
+				// Disable/modify plugin before we apply new settings
+				if ($.inArray(key, ['disableHammerPlugin', 'disableMouseWheelPlugin']) > -1) {
+					this._unbind();
+				}
+				else if ($.inArray(key, ['disabled', 'disablePan', 'disableZoom']) > -1 && this.hammerManager) {
+					this.hammerManager.stop(true);
+				}
+				else if (key == 'cssWrapperClass' && typeof this.settings.cssWrapperClass == 'string') {
+					this.$wrapper.removeClass(this.settings.cssWrapperClass);
+				}
+
+				// Apply option
+				this.settings[key] = value;
+
+				// Disable/modify plugin before we apply new settings
+				if ($.inArray(key, ['disableHammerPlugin', 'disableMouseWheelPlugin']) > -1) {
+					this._bind();
+				}
+				else if ($.inArray(key, ['disabled', 'disablePan', 'disableZoom']) > -1 && this.hammerManager) {
+					this.hammerManager.stop(true);
+				}
+				else if (key == 'cssWrapperClass' && typeof this.settings.cssWrapperClass == 'string') {
+					this.$wrapper.addClass(this.settings.cssWrapperClass);
+				}
+				else if ($.inArray(key, ['minZoom', 'maxZoom']) > -1) {
+					// Update constraints and set current zoom again to apply new constraints
+					this._setConstraints();
+					var zoom = this._getZoom();
+					this._zoomTo(zoom);
+				}
+				else if (key == 'autoCenter') {
+					switch (value) {
+						case true:
+						case 'both':
+							this._center();
+							break;
+
+						case 'horizontal':
+						case 'vertical':
+							this._center(value);
+							break;
+					}
+				}
+			}
+		},
+
+		/**
+		 *
+		 */
+		destroy: function() {
+			this.$image.trigger('destroy');
+
+			this._unbind();
+			this._unwrap();
+
+			// When reseting style it's important to remove style first and then set it again
+			// because this.originStyle can be undefined and if so only settings style won't
+			// do the job correctly
+			this.$image.removeAttr('style').attr('style', this.originStyle);
+			this._imageSize(this.originSize);
+
+			this._isPanning(false);
+			this._isPinching(false);
+
+			this.$image.removeData(datakey);
 		}
 	};
 
-
-	// ----------------------------------------------------------------------------------
-
-
 	/**
 	 *
 	 */
-	function Point(x, y)
-	{
-		this.x = Math.round(parseFloat(x));
-		this.y = Math.round(parseFloat(y));
-	}
-
-	function Size(width, height)
-	{
-		this.width = Math.round(parseFloat(width));
-		this.height = Math.round(parseFloat(height));
-	}
-
-	function Scale(x, y, z)
-	{
-		z = typeof z !== 'undefined' ? z : 1;
-		this.x = parseFloat(x);
-		this.y = parseFloat(y);
-		this.z = parseFloat(z);
-	}
-
-	function empty(value)
-	{
-		return (value == undefined)
-			|| (value == null)
-			|| (value == false)
-			|| (typeof value == "string" && value.length == 0)
-			|| (typeof value == "number" && (value == 0 || value == 0.0))
-			|| (typeof value == "object" && value.length == 0);
-	}
-
-	function ucfirst(str)
-	{
-		str += ''; // ensure that str is a string
-		var c = str[0].toUpperCase();
-		return c + str.substr(1);
-	}
-
-	String.prototype.ucfirst = function()
-	{
-		return ucfirst(this);
+	$.fn.apImageZoom = function( options ) {
+		if (typeof options === 'string') {
+			var instance, method, result, returnValues = [];
+			var params = Array.prototype.slice.call(arguments, 1);
+			this.each(function() {
+				instance = $(this).data(datakey);
+				if (!instance) {
+					returnValues.push(undefined);
+				}
+				// Ignore private methods
+				else if ((typeof (method = instance[options]) === 'function') && (options.charAt(0) !== '_')) {
+					var result = method.apply(instance, params);
+					if (result !== undefined) {
+						returnValues.push(result);
+					}
+				}
+			});
+			// Return an array of values for the jQuery instances
+			// Or the value itself if there is only one
+			// Or keep chaining
+			return returnValues.length ? (returnValues.length === 1 ? returnValues[0] : returnValues) : this;
+		}
+		return this.each(function() {
+			new ApImageZoom(this, options);
+		});
 	};
 
-	String.prototype.format = function()
-	{
-		var args = arguments;
-		return this.replace(/\{\{|\}\}|\{(\d+)\}/g, function (m, n) {
-			if (m == "{{") { return "{"; }
-			if (m == "}}") { return "}"; }
-			return args[n];
-		});
+	/**
+	 * Default settings for ApZoomImage plugin.
+	 */
+	ApImageZoom.defaultSettings = {
+		disableHammerPlugin: false,
+		disableMouseWheelPlugin: false,
+
+		disabled: false,
+		disablePan: false,
+		disableZoom: false,
+
+		initialSize: 'auto',		// Options: 'none', 'auto', 'min', 'max'
+		cssWrapperClass: null,
+		minZoom: 0.2,				// = 20%
+		maxZoom: 1.0,				// = 100%
+		zoomStep: 0.1,				// = 10% steps
+		autoCenter : true,			// Options: true, 'both', 'horizontal', 'vertical'
+
+		doubleTap: null,			// Options: 'open', 'zoomMax', 'zoomToggle'
+
+		onBeforeSizeChange: undefined,
+		onSizeChanged: undefined,
+		onBeforePositionChange: undefined,
+		onPositionChanged: undefined
 	};
 
 }(jQuery));

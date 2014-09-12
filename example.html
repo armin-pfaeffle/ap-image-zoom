@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0;" />
+		<meta name="author" content="Armin Pfäffle" />
+		<meta name="robots" content="index, follow" />
+
+		<title>ap-image-zoom</title>
+		<link rel="stylesheet" href="css/reset.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="css/ap-image-fullscreen.css" type="text/css" media="screen" />
+
+		 <script src="js/jquery.min.js"></script>
+		 <script src="js/hammer.min.js"></script>
+		 <script src="js/jquery.mousewheel.min.js"></script>
+
+		 <script src="js/ap-image-zoom.js"></script>
+		<!--[if lt IE 9]><script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	</head>
+
+	<body>
+
+		<img src="images/pride-w'14-3_large.jpg" width="325" height="425" alt="dirndl" id="image" />
+
+		<input type="button" value="Init" id="init" />
+		<input type="button" value="Destroy" id="destroy" />
+
+		<input type="button" value="Zoom to 0.7" id="zoom-to" />
+		<input type="button" value="Zoom +" id="zoom-in" />
+		<input type="button" value="Zoom -" id="zoom-out" />
+		<input type="button" value="Reset" id="reset" />
+		<input type="button" value="Disable" id="disable" />
+		<input type="button" value="Enable" id="enable" />
+		<input type="button" value="AutoCenter" id="autoCenter" />
+
+		<script type="text/javascript">
+
+			function initImage() {
+				$('#image')
+					.apImageZoom({
+						cssWrapperClass: 'custom-wrapper-class',
+						autoCenter: false
+					})
+					.on('doubletap', function(evt, a, b, c) {
+						console.debug(evt);
+						console.debug(a);
+						console.debug(b);
+						console.debug(c);
+					});
+			};
+			initImage();
+
+			$('#init').click(function() {
+				initImage();
+			});
+			$('#destroy').click(function() {
+				$('#image').apImageZoom('destroy');
+			});
+
+			$('#zoom-to').click(function() {
+				$('#image').apImageZoom('zoom', 0.7);
+			});
+			$('#zoom-in').click(function() {
+				$('#image').apImageZoom('zoomIn');
+			});
+			$('#zoom-out').click(function() {
+				$('#image').apImageZoom('zoomOut');
+			});
+			$('#reset').click(function() {
+				$('#image').apImageZoom('reset');
+			});
+			$('#disable').click(function() {
+				$('#image').apImageZoom('disable');
+			});
+			$('#enable').click(function() {
+				$('#image').apImageZoom('enable');
+			});
+			$('#autoCenter').click(function() {
+				$('#image').apImageZoom('option', { 'autoCenter': true });
+			});
+
+		</script>
+
+	</body>
+</html>
