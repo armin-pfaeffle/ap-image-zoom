@@ -1,5 +1,5 @@
 /**
-* @license ap-image-zoom.js v0.4
+* @license ap-image-zoom.js v0.5
 * Updated: 15.09.2014
 * {DESCRIPTION}
 * Copyright (c) 2014 armin pfaeffle
@@ -111,6 +111,12 @@
 
 					// Remove temporary image
 					$(this).remove();
+				})
+				.error(function() {
+					self._showError('Error loading image!');
+					if (self.$loadingAnimation) {
+						self.$loadingAnimation.remove();
+					}
 				})
 				.attr('src', this.$image.attr('src'));
 		},
@@ -746,6 +752,17 @@
 			}
 			result = ((result = this.$image.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
 			return result;
+		},
+
+		/**
+		 *
+		 */
+		_showError: function(message) {
+			if (!this.$errorMessage) {
+				this.$errorMessage = $('<div></div>').addClass(cssPrefix + 'error');
+				this.$wrapper.append(this.$errorMessage);
+			}
+			this.$errorMessage.html(message);
 		},
 
 		/**
