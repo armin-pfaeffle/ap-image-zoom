@@ -1,7 +1,7 @@
 /**
-* @license ap-image-zoom.js v0.3
-* Updated: 04.09.2014
-* DESCRIPTION
+* @license ap-image-zoom.js v0.4
+* Updated: 15.09.2014
+* {DESCRIPTION}
 * Copyright (c) 2014 armin pfaeffle
 * Released under the MIT license
 * http://armin-pfaeffle.de/licenses/mit
@@ -91,8 +91,14 @@
 			this.panning = false;
 			this.pinching = false;
 
+			// Store original size and style for restoring on destruction
 			this.originSize = new Size(this.$image.width(), this.$image.height());
 			this.originStyle = this.$image.attr('style');
+			this.$image.removeAttr('style');
+
+			// Place image into wrapper and hide it unless we have the natural size
+			this._wrapImage();
+			this._setCssClasses();
 
 			// Create a temporary hidden copy of image, so we obtain the real/natural size
 			$('<img />')
@@ -102,22 +108,11 @@
 					self.naturalSize = new Size($(this).width(), $(this).height());
 					self._setConstraints();
 					self._setup();
+
+					// Remove temporary image
 					$(this).remove();
 				})
 				.attr('src', this.$image.attr('src'));
-		},
-
-		/**
-		 *
-		 */
-		_setup: function() {
-			this._wrapImage();
-			this._setCssClasses();
-			this._resetSize();
-			this._center();
-			this._bind();
-
-			this._trigger('init');
 		},
 
 		/**
@@ -129,16 +124,70 @@
 			this.$overlay = $('<div></div>').addClass(cssPrefix + 'overlay');
 			this.$wrapper.append(this.$overlay);
 
+			// Add loading text/throbber
+			this._addLoadingAnimation();
+
 			// Apply ID with prefix "apiz-" if image has one
 			var id = this.$image.attr('id');
 			if (id) {
 				this.$wrapper.attr('id', cssPrefix + id);
 			}
 
-			// Replace image with wrapper and place image into wrapper
+			// Hide image and place it into the wrapper
 			this.$image
+				.hide()
 				.after(this.$wrapper)
 				.prependTo(this.$wrapper);
+		},
+
+		/**
+		 *
+		 */
+		_addLoadingAnimation: function() {
+			var $element;
+			switch (this.settings.loadingAnimation) {
+				// loadingAnimationData
+				case 'text':
+					$element = $('<div></div>').addClass(cssPrefix + 'loading-animation-text');
+					$element.html(this.settings.loadingAnimationData);
+					break;
+
+				case 'throbber':
+					$element = $('<div></div>').addClass(cssPrefix + 'throbber');
+					var circles = ['one', 'two', 'three'];
+					for (index in circles) {
+						$element.append( $('<div></div>').addClass(cssPrefix + 'circle ' + cssPrefix + 'circle-' + circles[index]) );
+					}
+					break;
+
+				case 'image':
+					$element = $('<div></div>').addClass(cssPrefix + 'loading-animation-image');
+					$element.css('background-image', 'url(\'' + this.settings.loadingAnimationData + '\')');
+					break;
+			}
+			if ($element) {
+				this.$loadingAnimation = $element;
+				this.$wrapper.append($element);
+			}
+		},
+
+		/**
+		 *
+		 */
+		_setup: function() {
+			this._resetSize();
+			this._center();
+			this._bind();
+
+			// Remove throbber and show image
+			if (this.$loadingAnimation) {
+				this.$loadingAnimation.fadeOut(200, function() {
+					$(this).remove();
+				});
+			}
+			this.$image.fadeIn(200);
+
+			this._trigger('init');
 		},
 
 		/**
@@ -950,14 +999,16 @@
 		disablePan: false,
 		disableZoom: false,
 
-		initialSize: 'auto',		// Options: 'none', 'auto', 'min', 'max'
-		cssWrapperClass: null,
-		minZoom: 0.2,				// = 20%
-		maxZoom: 1.0,				// = 100%
-		zoomStep: 0.1,				// = 10% steps
-		autoCenter : true,			// Options: true, 'both', 'horizontal', 'vertical'
+		loadingAnimation: undefined,	// Options: undefined, 'text', 'throbber', 'image'
+		loadingAnimationData: undefined,
+		initialSize: 'auto',			// Options: 'none', 'auto', 'min', 'max'
+		cssWrapperClass: undefined,
+		minZoom: 0.2,					// = 20%
+		maxZoom: 1.0,					// = 100%
+		zoomStep: 0.1,					// = 10% steps
+		autoCenter : true,				// Options: true, 'both', 'horizontal', 'vertical'
 
-		doubleTap: null,			// Options: 'open', 'zoomMax', 'zoomToggle'
+		doubleTap: undefined,			// Options: 'open', 'zoomMax', 'zoomToggle'
 
 		onBeforeSizeChange: undefined,
 		onSizeChanged: undefined,

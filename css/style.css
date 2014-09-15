@@ -13,4 +13,9 @@ body {
 	height: 90%;
 	margin: 10px auto;
 	background-color: #eee;
+	transition: background-color 0.3s;
 	}
+
+	.custom-wrapper-class.apiz-is-panning {
+		background-color: #fff;
+		}

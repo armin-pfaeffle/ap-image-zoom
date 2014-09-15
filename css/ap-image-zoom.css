@@ -1,0 +1,111 @@
+.apiz-wrapper {
+	overflow: hidden;
+	position: relative;
+	}
+
+.apiz-wrapper,
+.apiz-wrapper * {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	    -ms-user-select: none;
+	     -o-user-select: none;
+	        user-select: none;
+	}
+
+	.apiz-wrapper > img {
+		position: absolute;
+		z-index: 5;
+		}
+
+	.apiz-wrapper > .apiz-overlay {
+		position: absolute;
+		z-index: 10;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		}
+
+	.apiz-wrapper.apiz-enabled > .apiz-overlay {
+		cursor: move;
+		}
+
+	.apiz-wrapper.apiz-disabled > .apiz-overlay {
+		cursor: default;
+		}
+
+
+.apiz-wrapper .apiz-loading-animation-text {
+	position: absolute;
+	z-index: 1;
+	width: 100%;
+	text-align: center;
+	top: 49%;
+	}
+
+.apiz-wrapper .apiz-loading-animation-image {
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	height: 100%;
+	background-position: center center;
+	background-color: transparent;
+	background-repeat: no-repeat;
+	}
+
+/* Throbber animation from: http://codepen.io/argyleink/pen/goyiI */
+
+.apiz-wrapper .apiz-throbber {
+	position: absolute;
+	z-index: 1;
+	top: 50%;
+	left: 50%;
+	margin: -90px 0 0 -90px;
+	}
+
+	.apiz-wrapper .apiz-throbber > .apiz-circle {
+		/* absolute position with 3d animation = render layer */
+		position: absolute;
+
+		border: 3px solid transparent;
+		border-top: 1px solid #5f5c5c;
+		border-radius: 50%;
+
+		/* shared animation */
+		animation: throbberRotate linear infinite;
+		}
+
+	.apiz-wrapper .apiz-throbber > .apiz-circle.apiz-circle-one {
+		height: 50px;
+		width: 50px;
+		left: 50px;
+		top: 50px;
+		animation-duration: 0.85s;
+		}
+
+	.apiz-wrapper .apiz-throbber > .apiz-circle.apiz-circle-two {
+		height: 75px;
+		width: 75px;
+		top: 38px;
+		left: 38px;
+		animation-duration: 0.95s;
+		}
+
+	.apiz-wrapper .apiz-throbber > .apiz-circle.apiz-circle-three {
+		height: 100px;
+		width: 100px;
+		top: 25px;
+		left: 25px;
+		animation-duration: 1.05s;
+		}
+
+	@keyframes throbberRotate {
+		/* rotate on 3d transform for best perf, it ensures GPU accelerated animation */
+		from {
+			transform: rotateZ(360deg);
+		}
+		to {
+			transform: rotateZ(0deg);
+		}
+	}
