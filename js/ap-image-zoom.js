@@ -1,6 +1,6 @@
 /**
-* @license ap-image-zoom.js v0.5
-* Updated: 15.09.2014
+* @license ap-image-zoom.js v0.6
+* Updated: 16.09.2014
 * {DESCRIPTION}
 * Copyright (c) 2014 armin pfaeffle
 * Released under the MIT license
@@ -647,13 +647,19 @@
 		 */
 		_imagePosition: function(position) {
 			if (position) {
+				var overlaySize = this._overlaySize();
+				var marginLeft = position.x - Math.round(overlaySize.width / 2);
+				var marginTop = position.y - Math.round(overlaySize.height / 2);
 				this.$image.css({
-					left: position.x,
-					top: position.y
+					marginLeft: marginLeft,
+					marginTop: marginTop
 				});
 			}
 			else {
-				return new Point(this.$image.css('left'), this.$image.css('top'));
+				return new Point(
+					this.$image.offset().left - this.$overlay.offset().left,
+					this.$image.offset().top - this.$overlay.offset().top
+				);
 			}
 		},
 
