@@ -20,7 +20,7 @@
 
 	<body>
 
-		<img src="images/pride-w'14-3_large.jpg" width="325" height="425" alt="dirndl" id="image" />
+		<img src="images/pride-w'14-3_large.jpg" width="325" height="425" alt="dirndl" id="image" style="display: none" />
 
 		<input type="button" value="Init" id="init" />
 		<input type="button" value="Destroy" id="destroy" />
@@ -36,20 +36,14 @@
 		<script type="text/javascript">
 
 			function initImage() {
-				$('#image')
-					.apImageZoom({
-						cssWrapperClass: 'custom-wrapper-class',
-						autoCenter: false,
-						loadingAnimation: 'throbber',
-					})
-					.on('doubletap', function(evt, a, b, c) {
-						console.debug(evt);
-						console.debug(a);
-						console.debug(b);
-						console.debug(c);
-					});
+				$('#image').apImageZoom({
+					cssWrapperClass: 'custom-wrapper-class',
+					autoCenter: false,
+					loadingAnimation: 'throbber'
+				});
 			};
 			initImage();
+
 
 			$('#init').click(function() {
 				initImage();
