@@ -1,6 +1,6 @@
 /**
-* @license ap-image-zoom.js v0.7
-* Updated: 17.09.2014
+* @license ap-image-zoom.js v0.8
+* Updated: 01.10.2014
 * {DESCRIPTION}
 * Copyright (c) 2014 armin pfaeffle
 * Released under the MIT license
