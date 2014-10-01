@@ -756,9 +756,9 @@
 		 *
 		 */
 		_trigger: function(eventType, args) {
-			var optionName = 'on' + eventType.ucfirst();
-			if (typeof this.settings[optionName] == 'function') {
-				var f = this.settings[optionName];
+			var optionName = 'on' + eventType.ucfirst(),
+				f = this.settings[optionName];
+			if (typeof f == 'function') {
 				f.apply(this.$target, args);
 			}
 			eventType = eventPrefix + eventType.ucfirst();
@@ -770,10 +770,10 @@
 		 */
 		_triggerHandler: function(eventType, args) {
 			var optionName = 'on' + eventType.ucfirst(),
+				f = this.settings[optionName],
 				callbackResult = undefined,
 				result;
-			if (typeof this.settings[optionName] == 'function') {
-				var f = this.settings[optionName];
+			if (typeof f == 'function') {
 				callbackResult = f.apply(this.$target, args);
 			}
 			eventType = eventPrefix + eventType.ucfirst();
