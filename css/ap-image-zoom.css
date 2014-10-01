@@ -2,6 +2,8 @@
 	overflow: hidden;
 	position: relative;
 	font-size: 30px;
+	width: 100%;
+	height: 100%;
 	}
 
 .apiz-wrapper,
@@ -64,7 +66,7 @@
 		background-repeat: no-repeat;
 		}
 
-	/* Throbber animation from: http://codepen.io/argyleink/pen/goyiI */
+	/* Throbber animation inspired by http://codepen.io/argyleink/pen/goyiI */
 
 	.apiz-wrapper .apiz-throbber {
 		position: absolute;
@@ -81,13 +83,6 @@
 			border: 3px solid transparent;
 			border-top: 3px solid #5f5c5c;
 			border-radius: 50%;
-
-			/* shared animation */
-			-webkit-animation: throbberRotate linear infinite;
-			   -moz-animation: throbberRotate linear infinite;
-			    -ms-animation: throbberRotate linear infinite;
-			     -o-animation: throbberRotate linear infinite;
-			        animation: throbberRotate linear infinite;
 			}
 
 		.apiz-wrapper .apiz-throbber > .apiz-circle.apiz-circle-one {
@@ -95,11 +90,11 @@
 			width: 50px;
 			left: 50px;
 			top: 50px;
-			-webkit-animation-duration: 0.85s;
-			   -moz-animation-duration: 0.85s;
-			    -ms-animation-duration: 0.85s;
-			     -o-animation-duration: 0.85s;
-			        animation-duration: 0.85s;
+			-webkit-animation: 1.0s throbberRotateOne linear infinite;
+			   -moz-animation: 1.0s throbberRotateOne linear infinite;
+			    -ms-animation: 1.0s throbberRotateOne linear infinite;
+			     -o-animation: 1.0s throbberRotateOne linear infinite;
+			        animation: 1.0s throbberRotateOne linear infinite;
 			}
 
 		.apiz-wrapper .apiz-throbber > .apiz-circle.apiz-circle-two {
@@ -107,11 +102,11 @@
 			width: 75px;
 			top: 38px;
 			left: 38px;
-			-webkit-animation-duration: 0.95s;
-			   -moz-animation-duration: 0.95s;
-			    -ms-animation-duration: 0.95s;
-			     -o-animation-duration: 0.95s;
-			        animation-duration: 0.95s;
+			-webkit-animation: 1.05s throbberRotateTwo linear infinite;
+			   -moz-animation: 1.05s throbberRotateTwo linear infinite;
+			    -ms-animation: 1.05s throbberRotateTwo linear infinite;
+			     -o-animation: 1.05s throbberRotateTwo linear infinite;
+			        animation: 1.05s throbberRotateTwo linear infinite;
 			}
 
 		.apiz-wrapper .apiz-throbber > .apiz-circle.apiz-circle-three {
@@ -119,35 +114,90 @@
 			width: 100px;
 			top: 25px;
 			left: 25px;
-			-webkit-animation-duration: 1.05s;
-			   -moz-animation-duration: 1.05s;
-			    -ms-animation-duration: 1.05s;
-			     -o-animation-duration: 1.05s;
-			        animation-duration: 1.05s;
+			-webkit-animation: 1.1s throbberRotateThree linear infinite;
+			   -moz-animation: 1.1s throbberRotateThree linear infinite;
+			    -ms-animation: 1.1s throbberRotateThree linear infinite;
+			     -o-animation: 1.1s throbberRotateThree linear infinite;
+			        animation: 1.1s throbberRotateThree linear infinite;
 			}
 
-		@-webkit-keyframes throbberRotate {
+		/* Ring one */
+
+		@-webkit-keyframes throbberRotateOne {
+			from { transform: rotateZ(280deg); }
+			to { transform: rotateZ(-80deg); }
+			}
+
+		@-moz-keyframes throbberRotateOne {
+			from { transform: rotateZ(280deg); }
+			to { transform: rotateZ(-80deg); }
+			}
+
+		@-ms-keyframes throbberRotateOne {
+			from { transform: rotateZ(280deg); }
+			to { transform: rotateZ(-80deg); }
+			}
+
+		@-o-keyframes throbberRotateOne {
+			from { transform: rotateZ(280deg); }
+			to { transform: rotateZ(-80deg); }
+			}
+
+		@keyframes throbberRotateOne {
+			from { transform: rotateZ(280deg); }
+			to { transform: rotateZ(-80deg); }
+			}
+
+		/* Ring two */
+
+		@-webkit-keyframes throbberRotateTwo {
+			from { transform: rotateZ(320deg); }
+			to { transform: rotateZ(-20deg); }
+			}
+
+		@-moz-keyframes throbberRotateTwo {
+			from { transform: rotateZ(320deg); }
+			to { transform: rotateZ(-20deg); }
+			}
+
+		@-ms-keyframes throbberRotateTwo {
+			from { transform: rotateZ(320deg); }
+			to { transform: rotateZ(-20deg); }
+			}
+
+		@-o-keyframes throbberRotateTwo {
+			from { transform: rotateZ(320deg); }
+			to { transform: rotateZ(-20deg); }
+			}
+
+		@keyframes throbberRotateTwo {
+			from { transform: rotateZ(320deg); }
+			to { transform: rotateZ(-20deg); }
+			}
+
+		/* Ring three */
+
+		@-webkit-keyframes throbberRotateThree {
 			from { transform: rotateZ(360deg); }
 			to { transform: rotateZ(0deg); }
 			}
 
-		@-moz-keyframes throbberRotate {
+		@-moz-keyframes throbberRotateThree {
 			from { transform: rotateZ(360deg); }
 			to { transform: rotateZ(0deg); }
 			}
 
-		@-ms-keyframes throbberRotate {
+		@-ms-keyframes throbberRotateThree {
 			from { transform: rotateZ(360deg); }
 			to { transform: rotateZ(0deg); }
 			}
 
-		@-o-keyframes throbberRotate {
+		@-o-keyframes throbberRotateThree {
 			from { transform: rotateZ(360deg); }
 			to { transform: rotateZ(0deg); }
 			}
 
-		@keyframes throbberRotate {
-			/* rotate on 3d transform for best perf, it ensures GPU accelerated animation */
+		@keyframes throbberRotateThree {
 			from { transform: rotateZ(360deg); }
 			to { transform: rotateZ(0deg); }
 			}

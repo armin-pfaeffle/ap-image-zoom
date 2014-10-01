@@ -167,7 +167,6 @@
 		_addLoadingAnimation: function() {
 			var $element;
 			switch (this.settings.loadingAnimation) {
-				// loadingAnimationData
 				case 'text':
 					$element = $('<div></div>').addClass(cssPrefix + 'loading-animation-text');
 					$element.html(this.settings.loadingAnimationData);
@@ -211,11 +210,11 @@
 
 			// Remove throbber and show image
 			if (this.$loadingAnimation) {
-				this.$loadingAnimation.fadeOut(200, function() {
+				this.$loadingAnimation.fadeOut(this.settings.loadingAnimationFadeOutDuration, function() {
 					$(this).remove();
 				});
 			}
-			this.$image.fadeIn(200);
+			this.$image.fadeIn(this.settings.loadingAnimationFadeOutDuration);
 
 			this._trigger('init');
 		},
@@ -909,6 +908,34 @@
 		/**
 		 *
 		 */
+		zoomMin: function() {
+			this._zoomTo(this.settings.minZoom);
+		},
+
+		/**
+		 *
+		 */
+		zoomMax: function() {
+			this._zoomTo(this.settings.maxZoom);
+		},
+
+		/**
+		 *
+		 */
+		zoomToggle: function() {
+			var imageSize = this._imageSize();
+			if (imageSize.width == this.sizeConstraints.width.max) {
+				this._resetSize();
+				this._center();
+			}
+			else {
+				this._zoomTo(this.settings.maxZoom);
+			}
+		},
+
+		/**
+		 *
+		 */
 		option: function(key, value) {
 			if (!key) {
 				// Return copy of current settings
@@ -1034,12 +1061,13 @@
 	};
 
 	/**
-	 * Default settings for ApZoomImage plugin.
+	 * Default settings for ApImageZoom plugin.
 	 */
 	ApImageZoom.defaultSettings = {
 		imageUrl: undefined,
 		loadingAnimation: undefined,	// Options: undefined, 'text', 'throbber', 'image'
 		loadingAnimationData: undefined,
+		loadingAnimationFadeOutDuration: 200,
 		cssWrapperClass: undefined,
 		initialZoom: 'auto',			// Options: value (float), 'none', 'auto', 'min', 'max'
 		minZoom: 0.2,					// = 20%
