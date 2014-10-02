@@ -755,29 +755,31 @@
 		/**
 		 *
 		 */
-		_trigger: function(eventType, args) {
+		_trigger: function(eventType, args, $context) {
 			var optionName = 'on' + eventType.ucfirst(),
 				f = this.settings[optionName];
+			$context = ($context ? $context : this.$target);
 			if (typeof f == 'function') {
-				f.apply(this.$target, args);
+				f.apply($context, args);
 			}
 			eventType = eventPrefix + eventType.ucfirst();
-			this.$target.trigger(eventType, args);
+			$context.trigger(eventType, args);
 		},
 
 		/**
 		 *
 		 */
-		_triggerHandler: function(eventType, args) {
+		_triggerHandler: function(eventType, args, $context) {
 			var optionName = 'on' + eventType.ucfirst(),
 				f = this.settings[optionName],
 				callbackResult = undefined,
 				result;
+			$context = ($context ? $context : this.$target);
 			if (typeof f == 'function') {
-				callbackResult = f.apply(this.$target, args);
+				callbackResult = f.apply($context, args);
 			}
 			eventType = eventPrefix + eventType.ucfirst();
-			result = ((result = this.$target.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
+			result = ((result = $context.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
 			return result;
 		},
 
