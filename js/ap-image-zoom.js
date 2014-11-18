@@ -12,6 +12,8 @@
 	var datakey = '__apiz__';
 	var cssPrefix = 'apiz-';
 	var eventPrefix = 'apiz';
+	var eventNamespace = 'apiz';
+
 
 	/**
 	 * Makes the first character of str uppercase and returns that string.
@@ -288,7 +290,7 @@
 
 			// MouseWheel: zoom
 			if (!this.settings.disableMouseWheelPlugin && typeof jQuery.fn.mousewheel == "function") {
-				this.$overlay.on('mousewheel.apimagezoom', function(evt) { self._onMouseWheel(evt); } );
+				this.$overlay.on('mousewheel.' + eventNamespace, function(evt) { self._onMouseWheel(evt); } );
 			}
 		},
 
@@ -302,7 +304,7 @@
 				this._isPanning(false);
 				this._isPinching(false);
 			}
-			this.$overlay.off('mousewheel.apimagezoom');
+			this.$overlay.off('mousewheel.' + eventNamespace);
 		},
 
 		/**
@@ -1084,7 +1086,7 @@
 		disablePan: false,
 		disableZoom: false,
 
-		doubleTap: undefined			// Options: 'open', 'zoomMax', 'zoomToggle'
+		doubleTap: 'zoomToggle'			// Options: 'open', 'zoomMax', 'zoomToggle'
 	};
 
 }(jQuery));
