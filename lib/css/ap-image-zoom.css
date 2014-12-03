@@ -16,11 +16,16 @@
 	        user-select: none;
 	}
 
-	.apiz-wrapper > img {
+	.apiz-wrapper > img:first-child {
 		position: absolute;
+		z-index: 5;
 		left: 50%;
 		top: 50%;
-		z-index: 5;
+		-webkit-transform-origin: 0 0 0;
+		   -moz-transform-origin: 0 0 0;
+		    -ms-transform-origin: 0 0 0;
+		     -o-transform-origin: 0 0 0;
+		        transform-origin: 0 0 0;
 		}
 
 	.apiz-wrapper > .apiz-overlay {
@@ -30,17 +35,32 @@
 		top: 0;
 		width: 100%;
 		height: 100%;
+		/* you studid, studid IE... */
+		/* http://stackoverflow.com/questions/9109911/ie-z-index-trouble-on-element-with-transparent-background */
+		background: transparent url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBR‌​AA7");
 		}
 
-	.apiz-wrapper.apiz-enabled > .apiz-overlay {
+	.apiz-enabled > .apiz-overlay {
 		cursor: move;
+		cursor: grab;
+		cursor: url('lib/css/openhand.cur'), move; /* for IE */
+		cursor: url(openhand.cur) 4 4, move;
+		cursor: -moz-grab;
 		}
 
-	.apiz-wrapper.apiz-disabled > .apiz-overlay {
+	.apiz-enabled.apiz-dragging > .apiz-overlay {
+		cursor: move;
+		cursor: grab;
+		cursor: url('lib/css/closedhand.cur'), move; /* for IE */
+		cursor: url(closedhand.cur) 4 4, move;
+		cursor: -moz-grabbing;
+		}
+
+	.apiz-disabled > .apiz-overlay {
 		cursor: default;
 		}
 
-	.apiz-wrapper .apiz-error {
+	.apiz-wrapper .apiz-error-message {
 		color: #e0e0e0;
 		font-size: 80px;
 		line-height: 100px;

@@ -9,13 +9,15 @@ body {
 	}
 
 .custom-wrapper-class {
-	width: 90%;
-	height: 90%;
+	width: 90% !important;
+	height: 80% !important;
 	margin: 10px auto;
 	background-color: #eee;
-	transition: background-color 0.3s;
+	/*transition: background-color 0.3s;*/
 	}
 
+	/*
 	.custom-wrapper-class.apiz-is-panning {
 		background-color: #fff;
 		}
+	*/
