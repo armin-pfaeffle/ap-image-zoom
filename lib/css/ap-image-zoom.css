@@ -56,6 +56,10 @@
 		cursor: -moz-grabbing;
 		}
 
+	.apiz-loading > .apiz-overlay {
+		cursor: progress;
+		}
+
 	.apiz-disabled > .apiz-overlay {
 		cursor: default;
 		}
