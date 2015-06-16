@@ -16,7 +16,8 @@
 	        user-select: none;
 	}
 
-	.apiz-wrapper > img:first-child {
+	.apiz-wrapper > img:first-child,
+	.apiz-wrapper > svg:first-child {
 		position: absolute;
 		z-index: 5;
 		left: 50%;
