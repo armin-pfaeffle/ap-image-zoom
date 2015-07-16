@@ -29,6 +29,21 @@
 		        transform-origin: 0 0 0;
 		}
 
+	.apiz-wrapper > svg:first-child {
+		left: 0;
+		top: 0;
+	}
+
+	.apiz-wrapper > .apiz-original-svg {
+		/* This class is for the orignal SVG. It ensures that it is visible, but not visible on
+		   the screen. The reason for this is, that is has to be visible, because else the reference
+		   (<use> element) is not visible too, even if the reference is visible */
+		display: block !important;
+		visibility: visible !important;
+		position: absolute !important;
+		left: -100% !important;
+	}
+
 	.apiz-wrapper > .apiz-overlay {
 		position: absolute;
 		z-index: 10;
