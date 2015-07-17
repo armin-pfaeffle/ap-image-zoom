@@ -33,7 +33,7 @@
 			<input type="button" value="Reset" id="reset" />
 			<input type="button" value="Disable" id="disable" />
 			<input type="button" value="Enable" id="enable" />
-			<input type="button" value="AutoCenter" id="autoCenter" />
+			<input type="button" value="Enable AutoCenter" id="autoCenter" />
 		</div>
 
 		<svg version="1.1"
@@ -58,10 +58,10 @@
 					  cssWrapperClass: 'custom-wrapper-class'
 					, autoCenter: false
 					, loadingAnimation: 'throbber'
-					, minZoom: false//'contain'
+					, minZoom: false //'contain'
 					, maxZoom: false
-					// , zoomStep: 4.5,
-					// , maxZoom: 1.0
+					, zoomStep: 2
+					, click: 'zoomIn'
 					// , hammerPluginEnabled: false
 					// , hardwareAcceleration: false
 				});
@@ -80,7 +80,6 @@
 				$('#svg').apImageZoom('zoom', 0.7);
 			});
 			$('#zoom-in').click(function() {
-				console.debug('zoomIn');
 				$('#svg').apImageZoom('zoomIn');
 			});
 			$('#zoom-out').click(function() {
@@ -96,7 +95,14 @@
 				$('#svg').apImageZoom('enable');
 			});
 			$('#autoCenter').click(function() {
-				$('#svg').apImageZoom('option', { 'autoCenter': true });
+				var currentState = $('#svg').apImageZoom('option', 'autoCenter');
+				$('#svg').apImageZoom('option', { 'autoCenter': !currentState });
+				if (currentState) {
+					$(this).attr('value', 'Enable AutoCenter');
+				}
+				else {
+					$(this).attr('value', 'Disable AutoCenter');
+				}
 			});
 
 		</script>

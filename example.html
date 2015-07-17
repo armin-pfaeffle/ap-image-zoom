@@ -33,7 +33,7 @@
 			<input type="button" value="Reset" id="reset" />
 			<input type="button" value="Disable" id="disable" />
 			<input type="button" value="Enable" id="enable" />
-			<input type="button" value="AutoCenter" id="autoCenter" />
+			<input type="button" value="Enable AutoCenter" id="autoCenter" />
 		</div>
 
 		<img src="images/pride-w'14-3_large.jpg" width="325" height="425" alt="dirndl" id="image" style="display: none" />
@@ -49,7 +49,7 @@
 					, minZoom: 'contain'
 					, maxZoom: false
 					, maxZoom: 1.0
-					//, hammerPluginEnabled: false
+					// , hammerPluginEnabled: false
 					//, hardwareAcceleration: false
 				});
 			};
@@ -82,7 +82,14 @@
 				$('#image').apImageZoom('enable');
 			});
 			$('#autoCenter').click(function() {
-				$('#image').apImageZoom('option', { 'autoCenter': true });
+				var currentState = $('#image').apImageZoom('option', 'autoCenter');
+				$('#image').apImageZoom('option', { 'autoCenter': !currentState });
+				if (currentState) {
+					$(this).attr('value', 'Enable AutoCenter');
+				}
+				else {
+					$(this).attr('value', 'Disable AutoCenter');
+				}
 			});
 
 		</script>
