@@ -60,13 +60,16 @@
 					, loadingAnimation: 'throbber'
 					, minZoom: false //'contain'
 					, maxZoom: false
-					, zoomStep: 2
+					, zoomStep: 1
 					, click: 'zoomIn'
 					// , hammerPluginEnabled: false
 					// , hardwareAcceleration: false
 				});
 			};
-			initImage();
+
+			$(document).ready(function() {
+				initImage();
+			});
 
 
 			$('#init').click(function() {
