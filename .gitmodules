@@ -1,0 +1,9 @@
+[submodule "vendor/touchemulator"]
+	path = vendor/touchemulator
+	url = git@github.com:hammerjs/touchemulator.git
+[submodule "vendor/hammer.js"]
+	path = vendor/hammer.js
+	url = git@github.com:hammerjs/hammer.js.git
+[submodule "vendor/jquery.mousewheel"]
+	path = vendor/jquery.mousewheel
+	url = git@github.com:jquery/jquery-mousewheel.git
