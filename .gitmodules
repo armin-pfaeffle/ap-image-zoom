@@ -1,3 +1,0 @@
-[submodule "touchemulator"]
-	path = vendor/touchemulator
-	url = git@github.com:hammerjs/touchemulator.git
