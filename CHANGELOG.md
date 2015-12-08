@@ -1,3 +1,6 @@
+2.1.1 - 08.12.2015
+- Cleaned up repository
+
 2.1.0 - 08.12.2015
 - Removed IE cursor solution and corresponding cursor files	
 
