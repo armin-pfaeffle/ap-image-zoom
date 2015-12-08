@@ -59,16 +59,14 @@
 	.apiz-enabled > .apiz-overlay {
 		cursor: move;
 		cursor: grab;
-		cursor: url('lib/css/openhand.cur'), move; /* for IE */
-		cursor: url(openhand.cur) 4 4, move;
+		cursor: -webkit-grab;
 		cursor: -moz-grab;
 		}
 
 	.apiz-enabled.apiz-dragging > .apiz-overlay {
 		cursor: move;
 		cursor: grab;
-		cursor: url('lib/css/closedhand.cur'), move; /* for IE */
-		cursor: url(closedhand.cur) 4 4, move;
+		cursor: -webkit-grabbing;
 		cursor: -moz-grabbing;
 		}
 
