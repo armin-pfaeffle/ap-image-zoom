@@ -1,3 +1,7 @@
+#### 2.1.4 - 09.03.2016
+- Added event "autoDisableHardwareAccelerationOnIE9OrLower"
+
+
 #### 2.1.3 - 09.03.2016
 - Added new option autoDisableHardwareAccelerationOnIE9OrLower, default: true
 
