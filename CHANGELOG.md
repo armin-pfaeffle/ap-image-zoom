@@ -1,3 +1,7 @@
+#### 2.1.5 - 09.03.2016
+- Added new option for "loadingAnimation": when setting value to 'custom', loadingAnimationData must be a function returning valid HTML
+
+
 #### 2.1.4 - 09.03.2016
 - Added event "autoDisableHardwareAccelerationOnIE9OrLower"
 
